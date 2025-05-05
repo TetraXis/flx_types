@@ -1,4 +1,5 @@
-#pragma once
+#ifndef FLX_TYPES_HPP
+#define FLX_TYPES_HPP
 
 #ifdef FLX_ALL_MEMBERS_ARE_PUBLIC
 #define flx_public public
@@ -44,18 +45,18 @@ namespace flx
 		ty* owned_ptr;
 
 	flx_public:
-		explicit unique_ptr(ty* ptr = nullptr) : owned_ptr(ptr)
+		explicit constexpr unique_ptr(ty* ptr = nullptr) noexcept : owned_ptr(ptr)
 		{
 		}
-		~unique_ptr()
+		constexpr ~unique_ptr() noexcept
 		{
 			delete owned_ptr;
 		}
-		unique_ptr(unique_ptr&& other) noexcept : owned_ptr(other.owned_ptr)
+		constexpr unique_ptr(unique_ptr&& other) noexcept : owned_ptr(other.owned_ptr)
 		{
 			other.owned_ptr = nullptr;
 		}
-		unique_ptr& operator=(unique_ptr&& other) noexcept
+		constexpr unique_ptr& operator=(unique_ptr&& other) noexcept
 		{
 			if (this != &other)
 			{
@@ -65,22 +66,27 @@ namespace flx
 			}
 			return *this;
 		}
-		unique_ptr(const unique_ptr&) = delete;
-		unique_ptr& operator=(const unique_ptr&) = delete;
+		constexpr unique_ptr(const unique_ptr&) = delete;
+		constexpr unique_ptr& operator=(const unique_ptr&) = delete;
 
-		ty* get() const
+		explicit constexpr operator bool() const noexcept
+		{
+			return owned_ptr != nullptr;
+		}
+
+		constexpr ty* get() const noexcept
 		{
 			return owned_ptr;
 		}
-		ty& operator*() const
+		constexpr ty& operator*() const noexcept
 		{
 			return *owned_ptr;
 		}
-		ty* operator->() const
+		constexpr ty* operator->() const noexcept
 		{
 			return owned_ptr;
 		}
-		ty& operator[](u16 pos)
+		/*ty& operator[](u16 pos)
 		{
 			return owned_ptr[pos];
 		}
@@ -91,18 +97,18 @@ namespace flx
 		ty& operator[](u32 pos)
 		{
 			return owned_ptr[pos];
-		}
-		ty& operator[](u64 pos)
+		}*/
+		constexpr ty& operator[](u64 pos)
 		{
 			return owned_ptr[pos];
 		}
-		ty* release()
+		[[nodiscard]] constexpr ty* release() noexcept
 		{
 			ty* ptr = owned_ptr;
 			owned_ptr = nullptr;
 			return ptr;
 		}
-		void reset(ty* ptr = nullptr)
+		constexpr void reset(ty* ptr = nullptr) noexcept
 		{
 			if (owned_ptr)
 			{
@@ -111,10 +117,13 @@ namespace flx
 			owned_ptr = ptr;
 		}
 
-		template <typename ty, typename... Args>
-		flx::unique_ptr<ty> make_unique(Args... args)
-		{
-			return flx::unique_ptr<ty>(new ty(args...));
-		}
 	};
+
+	template <typename ty, typename... Args>
+	flx::unique_ptr<ty> make_unique(Args... args)
+	{
+		return flx::unique_ptr<ty>(new ty(args...));
+	}
 } // namespace flx
+
+#endif // !FLX_TYPES_HPP
