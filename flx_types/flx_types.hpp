@@ -1,6 +1,8 @@
 #ifndef FLX_TYPES_HPP
 #define FLX_TYPES_HPP
 
+#include <cassert>
+
 #ifdef FLX_ALL_MEMBERS_ARE_PUBLIC
 #define flx_public public
 #define flx_protected public
@@ -38,91 +40,133 @@ namespace flx
 	/// <summary>
 	/// Same as std::unique_ptr, but with less overhead.
 	/// </summary>
-	template <typename ty>
+	template<typename ty>
 	struct unique_ptr
 	{
 	flx_private:
-		ty* owned_ptr;
+		ty* owned_ptr = nullptr;
 
 	flx_public:
-		explicit constexpr unique_ptr(ty* ptr = nullptr) noexcept : owned_ptr(ptr)
-		{
-		}
-		constexpr ~unique_ptr() noexcept
-		{
-			delete owned_ptr;
-		}
-		constexpr unique_ptr(unique_ptr&& other) noexcept : owned_ptr(other.owned_ptr)
-		{
-			other.owned_ptr = nullptr;
-		}
-		constexpr unique_ptr& operator=(unique_ptr&& other) noexcept
-		{
-			if (this != &other)
-			{
-				delete owned_ptr;
-				owned_ptr = other.owned_ptr;
-				other.owned_ptr = nullptr;
-			}
-			return *this;
-		}
+		explicit constexpr unique_ptr(ty* = nullptr) noexcept;
+		constexpr ~unique_ptr() noexcept;
 		constexpr unique_ptr(const unique_ptr&) = delete;
+		constexpr unique_ptr(unique_ptr&&) noexcept;
+
 		constexpr unique_ptr& operator=(const unique_ptr&) = delete;
+		constexpr unique_ptr& operator=(unique_ptr&&) noexcept;
 
-		explicit constexpr operator bool() const noexcept
-		{
-			return owned_ptr != nullptr;
-		}
+		explicit constexpr operator bool() const noexcept;
 
-		constexpr ty* get() const noexcept
-		{
-			return owned_ptr;
-		}
-		constexpr ty& operator*() const noexcept
-		{
-			return *owned_ptr;
-		}
-		constexpr ty* operator->() const noexcept
-		{
-			return owned_ptr;
-		}
-		/*ty& operator[](u16 pos)
-		{
-			return owned_ptr[pos];
-		}
-		ty& operator[](i32 pos)
-		{
-			return owned_ptr[pos];
-		}
-		ty& operator[](u32 pos)
-		{
-			return owned_ptr[pos];
-		}*/
-		constexpr ty& operator[](u64 pos)
-		{
-			return owned_ptr[pos];
-		}
-		[[nodiscard]] constexpr ty* release() noexcept
-		{
-			ty* ptr = owned_ptr;
-			owned_ptr = nullptr;
-			return ptr;
-		}
-		constexpr void reset(ty* ptr = nullptr) noexcept
-		{
-			if (owned_ptr)
-			{
-				delete owned_ptr;
-			}
-			owned_ptr = ptr;
-		}
+		constexpr ty* get() const noexcept;
+		constexpr ty& operator*() const noexcept;
+		constexpr ty* operator->() const noexcept;
+
+		constexpr ty& operator[](u64);
+		constexpr const ty& operator[](u64) const;
+
+		[[nodiscard]] constexpr ty* release() noexcept;
+		constexpr void reset(ty* = nullptr) noexcept;
 
 	};
 
-	template <typename ty, typename... Args>
+	template<typename ty, typename... Args>
+	flx::unique_ptr<ty> make_unique(Args... args);
+
+	template<typename ty>
+	constexpr ty&& move(ty& obj) noexcept;
+} // namespace flx
+
+namespace flx
+{
+	template<typename ty>
+	inline constexpr unique_ptr<ty>::unique_ptr(ty* ptr) noexcept : owned_ptr(ptr)
+	{
+	}
+
+	template<typename ty>
+	inline constexpr unique_ptr<ty>::unique_ptr(unique_ptr&& other) noexcept : owned_ptr(other.owned_ptr)
+	{
+		other.owned_ptr = nullptr;
+	}
+
+	template<typename ty>
+	inline constexpr unique_ptr<ty>::~unique_ptr() noexcept
+	{
+		delete owned_ptr;
+	}
+
+	template<typename ty>
+	inline constexpr unique_ptr<ty>& unique_ptr<ty>::operator=(unique_ptr<ty>&& other) noexcept
+	{
+		assert(this != &other && "flx_types::unique_ptr::operator= assigning to self is forbidden.");
+
+		delete owned_ptr;
+		owned_ptr = other.owned_ptr;
+		other.owned_ptr = nullptr;
+		return *this;
+	}
+
+	template<typename ty>
+	inline constexpr unique_ptr<ty>::operator bool() const noexcept
+	{
+		return owned_ptr != nullptr;
+	}
+
+	template<typename ty>
+	inline constexpr ty* unique_ptr<ty>::get() const noexcept
+	{
+		return owned_ptr;
+	}
+
+	template<typename ty>
+	inline constexpr ty& unique_ptr<ty>::operator*() const noexcept
+	{
+		return *owned_ptr;
+	}
+
+	template<typename ty>
+	inline constexpr ty* unique_ptr<ty>::operator->() const noexcept
+	{
+		return owned_ptr;
+	}
+
+	template<typename ty>
+	inline constexpr ty& unique_ptr<ty>::operator[](u64 pos)
+	{
+		return owned_ptr[pos];
+	}
+
+	template<typename ty>
+	inline constexpr const ty& unique_ptr<ty>::operator[](u64 pos) const
+	{
+		return owned_ptr[pos];
+	}
+
+	template<typename ty>
+	[[nodiscard]] inline constexpr ty* unique_ptr<ty>::release() noexcept
+	{
+		ty* ptr = owned_ptr;
+		owned_ptr = nullptr;
+		return ptr;
+	}
+
+	template<typename ty>
+	inline constexpr void unique_ptr<ty>::reset(ty* ptr) noexcept
+	{
+		delete owned_ptr;
+		owned_ptr = ptr;
+	}
+
+	template<typename ty, typename... Args>
 	flx::unique_ptr<ty> make_unique(Args... args)
 	{
 		return flx::unique_ptr<ty>(new ty(args...));
+	}
+
+	template<typename ty>
+	constexpr ty&& move(ty& obj) noexcept
+	{
+		return static_cast<ty&&>(obj);
 	}
 } // namespace flx
 
