@@ -37,6 +37,8 @@ namespace flx
 	using f64	=			double;
 	using f80	=			long double;
 
+	// Note: Now in case if array is passed, delete[] is not called
+
 	/// <summary>
 	/// Same as std::unique_ptr, but with less overhead.
 	/// </summary>
@@ -61,23 +63,19 @@ namespace flx
 		constexpr ty& operator*() const noexcept;
 		constexpr ty* operator->() const noexcept;
 
-		constexpr ty& operator[](u64);
-		constexpr const ty& operator[](u64) const;
-
 		[[nodiscard]] constexpr ty* release() noexcept;
 		constexpr void reset(ty* = nullptr) noexcept;
 
 	};
 
 	template<typename ty, typename... Args>
-	flx::unique_ptr<ty> make_unique(Args... args);
+	constexpr flx::unique_ptr<ty> make_unique(Args... args) noexcept;
 
 	template<typename ty>
 	constexpr ty&& move(ty& obj) noexcept;
-} // namespace flx
 
-namespace flx
-{
+	// ===== implementation =====
+
 	template<typename ty>
 	inline constexpr unique_ptr<ty>::unique_ptr(ty* ptr) noexcept : owned_ptr(ptr)
 	{
@@ -121,25 +119,17 @@ namespace flx
 	template<typename ty>
 	inline constexpr ty& unique_ptr<ty>::operator*() const noexcept
 	{
+		assert(owned_ptr != nullptr && "flx_types::unique_ptr::operator* dereferencing a nullptr.")
+
 		return *owned_ptr;
 	}
 
 	template<typename ty>
 	inline constexpr ty* unique_ptr<ty>::operator->() const noexcept
 	{
+		assert(owned_ptr != nullptr && "flx_types::unique_ptr::operator-> dereferencing a nullptr.")
+
 		return owned_ptr;
-	}
-
-	template<typename ty>
-	inline constexpr ty& unique_ptr<ty>::operator[](u64 pos)
-	{
-		return owned_ptr[pos];
-	}
-
-	template<typename ty>
-	inline constexpr const ty& unique_ptr<ty>::operator[](u64 pos) const
-	{
-		return owned_ptr[pos];
 	}
 
 	template<typename ty>
@@ -158,7 +148,7 @@ namespace flx
 	}
 
 	template<typename ty, typename... Args>
-	flx::unique_ptr<ty> make_unique(Args... args)
+	constexpr flx::unique_ptr<ty> make_unique(Args... args) noexcept
 	{
 		return flx::unique_ptr<ty>(new ty(args...));
 	}
